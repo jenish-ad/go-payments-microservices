@@ -13,8 +13,8 @@ CREATE TABLE accounts(
     name            text            NOT NULL CHECK (name <> ''),
     currency        text            NOT NULL,
     normal_balance  entry_direction NOT NULL,
-    created_at      timestamptz      NOT NULL DEFAULT now(),
-    unique (id, currency)
+    created_at      timestamptz     NOT NULL DEFAULT now(),
+    unique (id, currency)  
 
 );
 

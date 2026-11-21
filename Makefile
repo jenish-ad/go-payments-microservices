@@ -19,3 +19,16 @@ ifeq ($(strip $(name)),)
 	$(error Usage: make migrate-new name=add_something)
 endif
 	migrate create -ext sql -dir db/$(SERVICE)/migrations -seq "$(name)"
+
+.PHONY: generate test
+
+# Regenerate the Go code for every service's SQL queries.
+generate:
+	@sqlc generate
+
+# Integration tests use local Docker Postgres by default. Set the URL to empty to skip them.
+WALLET_TEST_DATABASE_URL ?= postgres://payments:payments@localhost:5433/wallet?sslmode=disable
+export WALLET_TEST_DATABASE_URL
+
+test:
+	@go test -count=1 $(TESTFLAGS) ./...
