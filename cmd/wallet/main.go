@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/config"
+	"github.com/jenish-ad/go-payments-microservices/internal/platform/httpx"
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/logging"
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/postgres"
 )
@@ -45,28 +46,28 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("health check", "remote", r.RemoteAddr)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok"}` + "\n"))
+		httpx.WriteJSON(w, r, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
 	mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
 		defer cancel()
-		w.Header().Set("Content-Type", "application/json")
 		if err := pool.Ping(ctx); err != nil {
-			logger.Warn("not ready: database unreachable", "err", err)
-			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte(`{"status":"unavailable"}` + "\n"))
+			logger.WarnContext(ctx, "not ready: database unreachable", "err", err)
+			httpx.WriteJSON(w, r, http.StatusServiceUnavailable, map[string]string{"status": "unavailable"})
 			return
 		}
-		w.Write([]byte(`{"status":"ready"}` + "\n"))
-
+		httpx.WriteJSON(w, r, http.StatusOK, map[string]string{"status": "ready"})
 	})
+	mux.HandleFunc("/", httpx.NotFound)
 
 	srv := &http.Server{
 		Addr: cfg.HTTPAddr,
-		Handler:           mux,
+		Handler: httpx.Chain(mux,
+			httpx.RequestID,
+			httpx.AccessLog(logger),
+			httpx.Recover(logger),
+		),
 		ReadHeaderTimeout: 5 * time.Second,
 		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
 	}
