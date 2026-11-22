@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -10,18 +11,32 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jenish-ad/go-payments-microservices/internal/platform/config"
+	"github.com/jenish-ad/go-payments-microservices/internal/platform/logging"
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/postgres"
 )
 
-func main() {
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+// version is stamped at build time: go build -ldflags "-X main.version=v1.2.3"
+var version = "dev"
 
-	dsn := os.Getenv("WALLET_DATABASE_URL")
-	if dsn == "" {
-		// Local development uses the wallet database in Docker Compose.
-		dsn = "postgres://payments:payments@localhost:5433/wallet?sslmode=disable"
+func main() {
+	// There's no logger yet: its settings are part of configuration.
+	cfg, err := loadConfig(config.New(os.LookupEnv))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "waller:", err)
+		os.Exit(2)
 	}
-	pool, err := postgres.NewPool(context.Background(), dsn)
+	logger := logging.New(os.Stdout, logging.Options{
+		Service: "wallet",
+		Version: version,
+		Level:   cfg.LogLevel,
+		Format:  cfg.LogFormat,
+	})
+	//Code that logs through the slog package functions getis our logger too.
+	slog.SetDefault(logger)
+	logger.Info("starting", "env", cfg.Env, "log_level", cfg.LogLevel.String())
+
+	pool, err := postgres.NewPool(context.Background(), cfg.DatabaseURL, int32(cfg.DBMaxConns))
 	if err != nil {
 		logger.Error("connect to postgres", "err", err)
 		os.Exit(1)
@@ -50,9 +65,10 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:              ":8081",
+		Addr: cfg.HTTPAddr,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
+		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelWarn),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -69,7 +85,7 @@ func main() {
 	<-ctx.Done()
 	logger.Info("shutting down gracefully")
 
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
