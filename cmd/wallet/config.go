@@ -20,7 +20,7 @@ type Config struct {
 }
 
 // loadConfig reads the configuration. Everything has a sensible default except secrets and every
-// missing or ivaliid variable os reported at once.
+// missing or invalid variable is reported at once.
 func loadConfig(env *config.Env) (Config, error) {
 	c := Config{
 		Env:             env.OneOf("APP_ENV", "development", "development", "production"),

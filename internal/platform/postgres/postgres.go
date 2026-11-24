@@ -11,7 +11,7 @@ import (
 )
 
 // NewPool creates a connection pool of up to maxConns to the database at dsn and
-// checks that the database is reachable before returning it..
+// checks that the database is reachable before returning it.
 func NewPool(ctx context.Context, dsn string, maxConns int32) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {

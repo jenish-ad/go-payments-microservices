@@ -76,7 +76,7 @@ func AccessLog(logger *slog.Logger) Middleware {
 	}
 }
 
-// Recover turns a panic in a handler into 500 JSON error and log it with its stack trace.
+// Recover turns a panic in a handler into a 500 JSON error and logs it with its stack trace.
 func Recover(logger *slog.Logger) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

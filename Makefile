@@ -41,5 +41,6 @@ VERSION ?= $(shell git describe --always --dirty)
 
 run-wallet: export WALLET_DATABASE_URL := $(DB_URL)
 run-wallet:
+	@docker compose up -d --wait postgres
 	@go build -ldflags "-X main.version=$(VERSION)" -o bin/wallet.exe ./cmd/wallet
 	@bin\wallet.exe
