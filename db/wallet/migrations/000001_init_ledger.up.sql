@@ -27,7 +27,7 @@ CREATE TABLE transactions (
     created_at      timestamptz      NOT NUll DEFAULT now()
 );
 
---One line of a transaction: an account debited or credited to an account.
+--One line of a transaction: a debit or credit on an account.
 CREATE TABLE entries(
     id              bigint          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     transaction_id  uuid            NOT NULL REFERENCES transactions (id),
@@ -40,7 +40,7 @@ CREATE TABLE entries(
     FOREIGN KEY (account_id, currency) REFERENCES accounts(id, currency)
 );
 
---Postgres doesnot index foreign keys for us.
+--Postgres does not index foreign keys for us.
 CREATE INDEX entries_transaction_id_idx ON entries (transaction_id);
 CREATE INDEX entries_account_id_idx ON entries (account_id);
 
@@ -87,7 +87,7 @@ CREATE CONSTRAINT TRIGGER entries_balanced
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION check_transaction_balanced();
 
--- THE ledger is append only: mistakes are fixed with reversing transaction.
+-- The ledger is append-only: mistakes are fixed with a reversing transaction.
 CREATE FUNCTION forbid_ledger_changes() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
@@ -104,7 +104,7 @@ CREATE TRIGGER entries_append_only
     BEFORE UPDATE OR DELETE ON entries
     FOR EACH ROW EXECUTE FUNCTION forbid_ledger_changes();
 
--- Balance are derived from entries, never stored.
+-- Balances are derived from entries, never stored.
 CREATE VIEW account_balances AS
 SELECT 
     a.id AS account_id,
