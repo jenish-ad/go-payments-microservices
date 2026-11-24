@@ -39,6 +39,8 @@ func classify(err error) (int, string) {
 		return http.StatusNotFound, "not_found"
 	case errors.Is(err, apperr.ErrConflict):
 		return http.StatusConflict, "conflict"
+	case errors.Is(err, apperr.ErrUnauthenticated):
+		return http.StatusUnauthorized, "unauthenticated"
 	default:
 		return http.StatusInternalServerError, "internal"
 	}
