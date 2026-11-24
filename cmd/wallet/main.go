@@ -15,6 +15,7 @@ import (
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/httpx"
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/logging"
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/postgres"
+	"github.com/jenish-ad/go-payments-microservices/internal/wallet"
 )
 
 // version is stamped at build time: go build -ldflags "-X main.version=v1.2.3"
@@ -33,7 +34,7 @@ func main() {
 		Level:   cfg.LogLevel,
 		Format:  cfg.LogFormat,
 	})
-	//Code that logs through the slog package functions getis our logger too.
+	// Code that logs through the slog package functions gets our logger too.
 	slog.SetDefault(logger)
 	logger.Info("starting", "env", cfg.Env, "log_level", cfg.LogLevel.String())
 
@@ -59,6 +60,10 @@ func main() {
 		}
 		httpx.WriteJSON(w, r, http.StatusOK, map[string]string{"status": "ready"})
 	})
+
+	// The wallet API and a JSON 404 for eberything else.
+	svc := wallet.NewService(wallet.NewStore(pool))
+	wallet.NewHandler(svc).Register(mux)
 	mux.HandleFunc("/", httpx.NotFound)
 
 	srv := &http.Server{
