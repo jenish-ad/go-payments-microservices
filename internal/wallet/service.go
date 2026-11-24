@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jenish-ad/go-payments-microservices/internal/platform/apperr"
 )
 
@@ -44,7 +45,13 @@ func NewService(store *Store) *Service {
 	return &Service{store: store}
 }
 
-// currencyCode matches the shape of an ISO 4217 code like USD or EUR.
+// WithTx returns a Service that does all its work inside tx, the caller's
+// database transaction. See Store.WithTx.
+func (s *Service) WithTx(tx pgx.Tx) *Service {
+	return &Service{store: s.store.WithTx(tx)}
+}
+
+// currencyCode matches the shape of an ISO 4217 code, like USD or EUR.
 var currencyCode = regexp.MustCompile(`^[A-Z]{3}$`)
 
 // CreateWallet opens a wallet for an owner in one currency. An owner can have one waller per currency

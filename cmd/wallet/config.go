@@ -17,6 +17,7 @@ type Config struct {
 	LogFormat       string
 	DatabaseURL     string
 	DBMaxConns      int
+	RedisURL        string
 }
 
 // loadConfig reads the configuration. Everything has a sensible default except secrets and every
@@ -29,6 +30,7 @@ func loadConfig(env *config.Env) (Config, error) {
 		LogLevel:        config.Parse(env, "LOG_LEVEL", slog.LevelInfo, logging.ParseLevel),
 		DatabaseURL:     env.Required("WALLET_DATABASE_URL"),
 		DBMaxConns:      env.Int("WALLET_DB_MAX_CONNS", 10),
+		RedisURL:        env.String("WALLET_REDIS_URL", "redis://localhost:6380/0"),
 	}
 
 	// Text logs for humans in development, JSON for log collectors in production.
@@ -38,7 +40,7 @@ func loadConfig(env *config.Env) (Config, error) {
 	}
 	c.LogFormat = env.OneOf("LOG_FORMAT", format, "text", "json")
 
-	if c.DBMaxConns < 1 || c.DBMaxConns> 100 {
+	if c.DBMaxConns < 1 || c.DBMaxConns > 100 {
 		env.Invalid("WALLET_DB_MAX_CONNS", "must be between 1 and 100")
 	}
 	return c, env.Err()
